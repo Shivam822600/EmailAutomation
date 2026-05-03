@@ -220,3 +220,31 @@ This project is ready for Render, Railway, or a VPS:
 - Make sure persistent storage is available if uploaded resumes must survive redeploys
 
 For long-term production use, consider moving resume storage from local disk to S3, Cloudinary, or another durable file storage provider.
+
+## Deploy On Render
+
+This repo includes `render.yaml`, so you can deploy it as a Render Blueprint.
+
+1. Push this repository to GitHub.
+2. In Render, choose **New > Blueprint**.
+3. Connect this repo: `https://github.com/Shivam822600/EmailAutomation`.
+4. Render will use:
+
+```text
+Build Command: npm install
+Start Command: npm start
+Health Check Path: /api/health
+```
+
+5. Add the secret environment variables in Render:
+
+```text
+MONGODB_URI
+SMTP_USER
+SMTP_PASS
+EMAIL_FROM
+```
+
+`PORT` is provided by Render automatically. Do not hard-code it.
+
+Important: local uploads on Render are not permanent unless you attach persistent storage. For production, move resume uploads to S3, Cloudinary, or another durable file storage service.
