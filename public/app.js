@@ -548,12 +548,40 @@ const sendEmails = async () => {
       }),
     });
 
-    const result = payload.data;
-    setResult(
-      elements.sendResult,
-      `Eligible: ${result.totalEligible}\nSent: ${result.successCount}\nFailed: ${result.failedCount}\nSkipped sent: ${result.skippedSentCount}\nResent already sent: ${result.resentSentCount}`
-    );
+    setResult(elements.sendResult, 'Bulk email job started. Keep this page open or refresh status after a few seconds.');
     await refreshData();
+
+    const pollJob = async () => {
+      const statusPayload = await api('/api/send-emails/status');
+      const job = statusPayload.data;
+
+      if (job.error) {
+        setResult(elements.sendResult, job.error, 'error');
+        await refreshData();
+        return;
+      }
+
+      if (job.running) {
+        setResult(elements.sendResult, 'Bulk email job is running...');
+        window.setTimeout(pollJob, 3000);
+        return;
+      }
+
+      const result = job.summary;
+      if (!result) {
+        setResult(elements.sendResult, 'Bulk email job finished without a summary.');
+        await refreshData();
+        return;
+      }
+
+      setResult(
+        elements.sendResult,
+        `Eligible: ${result.totalEligible}\nSent: ${result.successCount}\nFailed: ${result.failedCount}\nSkipped sent: ${result.skippedSentCount}\nResent already sent: ${result.resentSentCount}`
+      );
+      await refreshData();
+    };
+
+    window.setTimeout(pollJob, 3000);
   } catch (error) {
     setResult(elements.sendResult, error.message, 'error');
   } finally {

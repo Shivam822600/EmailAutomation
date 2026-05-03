@@ -32,6 +32,12 @@ const sendMail = async ({ to, subject, html, attachments }) => {
   });
 };
 
+const verifySmtpConnection = async () => {
+  const transporter = createTransporter();
+  await transporter.verify();
+};
+
 module.exports = {
   sendMail,
+  verifySmtpConnection,
 };

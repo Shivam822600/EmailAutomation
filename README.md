@@ -192,7 +192,19 @@ GET /api/resume
 POST /api/send-emails
 ```
 
-This sends emails to records with status `pending` or `failed`, skips already sent records, attaches the latest uploaded resume, updates each email status, and returns success/failed counts.
+This starts a background email sending job for records with status `pending` or `failed`, skips already sent records, attaches the latest uploaded resume, updates each email status, and returns job status.
+
+Check the current sending job:
+
+```http
+GET /api/send-emails/status
+```
+
+Check SMTP configuration:
+
+```http
+GET /api/send-emails/smtp-check
+```
 
 To resend emails that already have `status: sent`, send:
 
