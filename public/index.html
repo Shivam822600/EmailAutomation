@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart HR Outreach</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">HR</div>
+          <div>
+            <h1>Smart HR Outreach</h1>
+            <p>Automation Console</p>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Primary">
+          <button class="nav-tab active" type="button" data-screen="dashboard">Dashboard</button>
+          <button class="nav-tab" type="button" data-screen="emails">Emails</button>
+          <button class="nav-tab" type="button" data-screen="resume">Resume</button>
+          <button class="nav-tab" type="button" data-screen="sender">Send</button>
+          <button class="nav-tab" type="button" data-screen="reports">Reports</button>
+        </nav>
+
+        <div class="api-card">
+          <span class="label">API Status</span>
+          <strong id="apiStatus">Checking</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Outreach workspace</p>
+            <h2 id="screenTitle">Dashboard</h2>
+          </div>
+          <button class="ghost-button" type="button" id="refreshButton">Refresh</button>
+        </header>
+
+        <section class="screen active" id="dashboard">
+          <div class="metrics-grid">
+            <article class="metric-card">
+              <span>Total Emails</span>
+              <strong id="totalEmails">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Pending</span>
+              <strong id="pendingEmails">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Sent</span>
+              <strong id="sentEmails">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Failed</span>
+              <strong id="failedEmails">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Skipped</span>
+              <strong id="skippedEmails">0</strong>
+            </article>
+          </div>
+
+          <div class="two-column">
+            <section class="panel">
+              <div class="panel-header">
+                <h3>Latest Resume</h3>
+              </div>
+              <div id="latestResumeCard" class="empty-state">No resume uploaded yet.</div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h3>Recent Emails</h3>
+              </div>
+              <div class="table-wrap compact">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentEmailRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen" id="emails">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Add Single Email</h3>
+                <p>Add one HR contact manually and keep duplicate protection active.</p>
+              </div>
+            </div>
+            <form id="singleEmailForm" class="manual-form">
+              <label>
+                <span>Email</span>
+                <input id="singleEmail" name="email" type="email" placeholder="hr@example.com" required />
+              </label>
+              <label>
+                <span>Name</span>
+                <input id="singleName" name="name" type="text" placeholder="HR name" />
+              </label>
+              <label>
+                <span>Company</span>
+                <input id="singleCompany" name="company" type="text" placeholder="Company name" />
+              </label>
+              <button type="submit">Add Email</button>
+            </form>
+            <div id="singleEmailResult" class="result-box hidden"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Upload HR Emails</h3>
+                <p>CSV columns: email, name, company. JSON should be an array of records.</p>
+              </div>
+            </div>
+            <form id="emailUploadForm" class="upload-form">
+              <input id="emailFile" name="file" type="file" accept=".csv,.json" required />
+              <button type="submit">Upload Emails</button>
+            </form>
+            <div id="emailUploadResult" class="result-box hidden"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3>Email Records</h3>
+              <div class="table-toolbar">
+                <input id="emailSearch" type="search" placeholder="Search email, name, company" aria-label="Search email records" />
+                <select id="statusFilter" aria-label="Filter by status">
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="sent">Sent</option>
+                  <option value="failed">Failed</option>
+                  <option value="skipped">Skipped</option>
+                </select>
+              </div>
+            </div>
+            <div class="bulk-toolbar">
+              <label class="select-row">
+                <input id="selectAllEmails" type="checkbox" />
+                <span>Select all visible</span>
+              </label>
+              <span id="emailTableCount">0 total</span>
+              <span id="selectedEmailCount">0 selected</span>
+              <button id="bulkSkipButton" class="small-muted-button" type="button" disabled>Skip selected</button>
+              <button id="bulkUnskipButton" class="small-muted-button" type="button" disabled>Unskip selected</button>
+              <button id="bulkDeleteButton" class="small-danger-button" type="button" disabled>Delete selected</button>
+            </div>
+            <div class="table-wrap email-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="select-column">Select</th>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Last Sent</th>
+                    <th>Error</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="emailRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen" id="resume">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Upload Resume</h3>
+                <p>Accepted formats: PDF, DOC, DOCX.</p>
+              </div>
+            </div>
+            <form id="resumeUploadForm" class="upload-form">
+              <input id="resumeFile" name="resume" type="file" accept=".pdf,.doc,.docx" required />
+              <button type="submit">Upload Resume</button>
+            </form>
+            <div id="resumeUploadResult" class="result-box hidden"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3>Current Resume</h3>
+            </div>
+            <div id="resumeDetails" class="empty-state">No resume uploaded yet.</div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3>Resume Preview</h3>
+            </div>
+            <div id="resumePreview" class="resume-preview empty-state">No resume uploaded yet.</div>
+          </section>
+        </section>
+
+        <section class="screen" id="sender">
+          <section class="panel send-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Bulk Email Sender</h3>
+                <p>Sends to pending and failed emails by default. Turn on resend when you want to email sent records again.</p>
+              </div>
+            </div>
+            <div class="send-summary">
+              <div>
+                <span>Ready to send</span>
+                <strong id="readyToSend">0</strong>
+              </div>
+              <div>
+                <span>Resume</span>
+                <strong id="resumeReady">Missing</strong>
+              </div>
+            </div>
+            <label class="checkbox-row">
+              <input id="resendSentCheckbox" type="checkbox" />
+              <span>Resend already sent emails</span>
+            </label>
+            <button id="sendEmailsButton" class="danger-button" type="button">Start Bulk Send</button>
+            <div id="sendResult" class="result-box hidden"></div>
+          </section>
+        </section>
+
+        <section class="screen" id="reports">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Day By Day Email Report</h3>
+                <p>Each row summarizes all bulk send runs completed on that date.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Runs</th>
+                    <th>Eligible</th>
+                    <th>Sent</th>
+                    <th>Failed</th>
+                    <th>Skipped Sent</th>
+                    <th>Resent Sent</th>
+                  </tr>
+                </thead>
+                <tbody id="reportRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
