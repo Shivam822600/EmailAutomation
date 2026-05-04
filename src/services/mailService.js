@@ -13,6 +13,9 @@ const createTransporter = () => {
     host: env.smtp.host,
     port: env.smtp.port,
     secure: env.smtp.secure,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
     auth: {
       user: env.smtp.user,
       pass: env.smtp.pass,

@@ -7,7 +7,7 @@ const env = {
     port: Number(process.env.SMTP_PORT || 465),
     secure: String(process.env.SMTP_SECURE || 'true') === 'true',
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    pass: String(process.env.SMTP_PASS || '').replace(/\s+/g, ''),
     from: process.env.EMAIL_FROM || process.env.SMTP_USER,
   },
   emailDelayMs: Number(process.env.EMAIL_DELAY_MS || 5000),

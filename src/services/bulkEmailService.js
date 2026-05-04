@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 const Email = require('../models/Email');
 const { getLatestResume } = require('./resumeService');
@@ -35,6 +36,14 @@ const sendBulkEmails = async ({ includeSent = false } = {}) => {
 
   if (!resume) {
     const error = new Error('No resume found. Upload a resume before sending emails.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const resumePath = path.resolve(resume.filePath);
+
+  if (!fs.existsSync(resumePath)) {
+    const error = new Error('Resume file is missing on the server. Upload the resume again before sending emails.');
     error.statusCode = 400;
     throw error;
   }
@@ -76,7 +85,7 @@ const sendBulkEmails = async ({ includeSent = false } = {}) => {
       attachments: [
         {
           filename: resume.fileName,
-          path: path.resolve(resume.filePath),
+          path: resumePath,
         },
       ],
     });
