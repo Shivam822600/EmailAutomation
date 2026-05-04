@@ -4,7 +4,7 @@ const fs = require('fs');
 const Email = require('../models/Email');
 const { getLatestResume } = require('./resumeService');
 const { sendMail } = require('./mailService');
-const { loadTemplate, renderTemplate } = require('./templateService');
+const { loadTemplate } = require('./templateService');
 const delay = require('../utils/delay');
 const { writeLog } = require('../utils/logger');
 const { env } = require('../config/env');
@@ -19,6 +19,7 @@ const sendWithRetry = async (mailOptions) => {
       return { success: true, attempts: attempt };
     } catch (error) {
       lastError = error;
+      console.error(`[Email Error]: Attempt ${attempt} failed for ${mailOptions.to}:`, error.message);
       await writeLog(`Attempt ${attempt} failed for ${mailOptions.to}: ${error.message}`);
     }
   }
@@ -71,16 +72,13 @@ const sendBulkEmails = async ({ includeSent = false } = {}) => {
 
   for (let index = 0; index < recipients.length; index += 1) {
     const recipient = recipients[index];
-    const html = renderTemplate(template, {
-      name: recipient.name || 'there',
-      company: recipient.company || 'your company',
-    });
+    const html = template;
 
     console.log(`Sending ${index + 1}/${recipients.length}: ${recipient.email}`);
 
     const result = await sendWithRetry({
       to: recipient.email,
-      subject: 'Application for MERN Stack / React Developer your company | 3+ years',
+      subject: 'Application for MERN Stack / React Developer | 3+ years',
       html,
       attachments: [
         {
@@ -100,6 +98,7 @@ const sendBulkEmails = async ({ includeSent = false } = {}) => {
       recipient.status = 'failed';
       recipient.error = result.error?.message || 'Unknown email sending error';
       summary.failedCount += 1;
+      console.error(`[Email Error]: Failed final attempt for ${recipient.email}:`, recipient.error);
       await writeLog(`Email failed for ${recipient.email}: ${recipient.error}`);
     }
 
