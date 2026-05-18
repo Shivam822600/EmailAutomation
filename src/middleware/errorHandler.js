@@ -1,4 +1,6 @@
 const errorHandler = (err, req, res, next) => {
+  console.error('[API Error]:', err);
+
   const statusCode = err.statusCode || (err.name === 'MulterError' ? 400 : 500);
 
   res.status(statusCode).json({

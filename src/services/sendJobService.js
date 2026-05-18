@@ -27,6 +27,7 @@ const startSendJob = ({ includeSent = false } = {}) => {
       sendJob.summary = await sendBulkEmails({ includeSent });
     } catch (error) {
       sendJob.error = error.message;
+      console.error('[Job Error]: Bulk email background job failed:', error);
       await writeLog(`Bulk email background job failed: ${error.message}`);
     } finally {
       sendJob.running = false;
