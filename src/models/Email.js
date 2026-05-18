@@ -26,6 +26,11 @@ const emailSchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
+    skippedFromStatus: {
+      type: String,
+      enum: ['', 'pending', 'sent', 'failed'],
+      default: '',
+    },
     lastSentAt: {
       type: Date,
       default: null,

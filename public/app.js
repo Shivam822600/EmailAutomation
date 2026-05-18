@@ -443,7 +443,7 @@ const updateEmailSkipStatus = async (emailId, shouldSkip) => {
         skip: shouldSkip,
       }),
     });
-    showToast(shouldSkip ? 'Email skipped.' : 'Email moved back to pending.');
+    showToast(shouldSkip ? 'Email skipped.' : 'Email restored.');
     await refreshData();
   } catch (error) {
     showToast(error.message);
@@ -465,7 +465,7 @@ const bulkUpdateEmailSkipStatus = async (shouldSkip) => {
       }),
     });
     state.selectedEmailIds.clear();
-    showToast(shouldSkip ? 'Selected emails skipped.' : 'Selected emails moved back to pending.');
+    showToast(shouldSkip ? 'Selected emails skipped.' : 'Selected emails restored.');
     await refreshData();
   } catch (error) {
     showToast(error.message);

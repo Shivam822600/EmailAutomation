@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const Email = require('../models/Email');
 const { importEmails } = require('../services/emailImportService');
+const { restorePendingSentEmails } = require('../services/emailStatusRepairService');
 const asyncHandler = require('../utils/asyncHandler');
 const sendResponse = require('../utils/apiResponse');
 const { isValidEmail, normalizeEmail } = require('../utils/validators');
@@ -26,6 +27,8 @@ const uploadEmails = asyncHandler(async (req, res) => {
 
 const getEmails = asyncHandler(async (req, res) => {
   const filter = {};
+
+  await restorePendingSentEmails();
 
   if (req.query.status) {
     filter.status = req.query.status;
@@ -57,6 +60,14 @@ const getValidEmailIds = (ids) => {
   return ids.filter((id) => /^[a-f\d]{24}$/i.test(String(id)));
 };
 
+const getUnskippedStatus = (email) => {
+  if (['pending', 'sent', 'failed'].includes(email.skippedFromStatus)) {
+    return email.skippedFromStatus;
+  }
+
+  return email.lastSentAt ? 'sent' : 'pending';
+};
+
 const bulkDeleteEmails = asyncHandler(async (req, res) => {
   const ids = getValidEmailIds(req.body.ids);
   const result = await Email.deleteMany({ _id: { $in: ids } });
@@ -76,14 +87,25 @@ const updateEmailSkipStatus = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  updatedEmail.status = shouldSkip ? 'skipped' : 'pending';
-  updatedEmail.error = shouldSkip ? 'Manually skipped from sending' : '';
+  if (shouldSkip) {
+    if (updatedEmail.status !== 'skipped') {
+      updatedEmail.skippedFromStatus = updatedEmail.status;
+    }
+
+    updatedEmail.status = 'skipped';
+    updatedEmail.error = 'Manually skipped from sending';
+  } else {
+    updatedEmail.status = getUnskippedStatus(updatedEmail);
+    updatedEmail.skippedFromStatus = '';
+    updatedEmail.error = '';
+  }
+
   await updatedEmail.save();
 
   sendResponse(
     res,
     200,
-    shouldSkip ? 'Email skipped successfully' : 'Email moved back to pending successfully',
+    shouldSkip ? 'Email skipped successfully' : 'Email restored successfully',
     updatedEmail
   );
 });
@@ -91,20 +113,46 @@ const updateEmailSkipStatus = asyncHandler(async (req, res) => {
 const bulkUpdateEmailSkipStatus = asyncHandler(async (req, res) => {
   const ids = getValidEmailIds(req.body.ids);
   const shouldSkip = req.body.skip === true;
-  const result = await Email.updateMany(
-    { _id: { $in: ids } },
-    {
-      $set: {
-        status: shouldSkip ? 'skipped' : 'pending',
-        error: shouldSkip ? 'Manually skipped from sending' : '',
-      },
+  const emails = await Email.find({ _id: { $in: ids } });
+
+  const operations = emails.map((email) => {
+    if (shouldSkip) {
+      return {
+        updateOne: {
+          filter: { _id: email._id },
+          update: {
+            $set: {
+              status: 'skipped',
+              skippedFromStatus: email.status === 'skipped' ? email.skippedFromStatus : email.status,
+              error: 'Manually skipped from sending',
+            },
+          },
+        },
+      };
     }
-  );
+
+    return {
+      updateOne: {
+        filter: { _id: email._id },
+        update: {
+          $set: {
+            status: getUnskippedStatus(email),
+            skippedFromStatus: '',
+            error: '',
+          },
+        },
+      },
+    };
+  });
+
+  const result = operations.length
+    ? await Email.bulkWrite(operations, { ordered: false })
+    : { matchedCount: 0, modifiedCount: 0 };
 
   sendResponse(
     res,
     200,
-    shouldSkip ? 'Selected emails skipped successfully' : 'Selected emails moved back to pending successfully',
+    shouldSkip ? 'Selected emails skipped successfully' : 'Selected emails restored successfully',
     {
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,

@@ -9,6 +9,7 @@ const delay = require('../utils/delay');
 const { writeLog } = require('../utils/logger');
 const { env } = require('../config/env');
 const { recordEmailReport } = require('./reportService');
+const { restorePendingSentEmails } = require('./emailStatusRepairService');
 
 const sendWithRetry = async (mailOptions) => {
   let lastError;
@@ -49,11 +50,24 @@ const sendBulkEmails = async ({ includeSent = false } = {}) => {
   }
 
   const template = await loadTemplate();
-  const eligibleStatuses = includeSent ? ['pending', 'failed', 'sent'] : ['pending', 'failed'];
-  const recipients = await Email.find({
-    status: { $in: eligibleStatuses },
-  }).sort({ createdAt: 1 });
-  const skippedSentCount = includeSent ? 0 : await Email.countDocuments({ status: 'sent' });
+  await restorePendingSentEmails();
+
+  const recipients = await Email.find(
+    includeSent
+      ? { status: { $in: ['pending', 'failed', 'sent'] } }
+      : {
+          $or: [
+            { status: 'failed' },
+            { status: 'pending', lastSentAt: null },
+            { status: 'pending', lastSentAt: { $exists: false } },
+          ],
+        }
+  ).sort({ createdAt: 1 });
+  const skippedSentCount = includeSent
+    ? 0
+    : await Email.countDocuments({
+        $or: [{ status: 'sent' }, { status: 'pending', lastSentAt: { $exists: true, $ne: null } }],
+      });
   const resentSentCount = includeSent ? recipients.filter((recipient) => recipient.status === 'sent').length : 0;
 
   const summary = {
